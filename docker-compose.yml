@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Serviço 1: SQL Server
+  sql-server:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sql-server-db
+    environment:
+      - ACCEPT_EULA=Y
+      # --- CONFIRA A SENHA (1/3) ---
+      - SA_PASSWORD=SuaSenha@Forte123
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+    # Labels do Datadog (Corrigido, sem o comentário interno)
+    labels:
+      com.datadoghq.ad.check_names: '["sqlserver"]'
+      com.datadoghq.ad.init_configs: '[{}]'
+      com.datadoghq.ad.instances: >-
+        [
+          {
+            "host": "sql-server,1433",
+            "username": "sa",
+            # A SENHA VAI AQUI, DENTRO DAS ASPAS
+            "password": "SuaSenha@Forte123"
+          }
+        ]
+      com.datadoghq.ad.logs: '[{"source": "sqlserver", "service": "sql-server-db"}]'
+
+  # Serviço 2: Sua API .NET
+  minha-api:
+    container_name: minha-api-web
+    build: .
+    ports:
+      - "80:8080"
+    environment:
+      # --- CONFIRA A SENHA (3/3) ---
+      - ConnectionStrings__DefaultConnection=Server=sql-server;Database=master;User Id=sa;Password=SuaSenha@Forte123;TrustServerCertificate=True
+      
+      # Envs do Datadog APM (Tracer)
+      - DD_AGENT_HOST=datadog-agent
+      - DD_LOGS_INJECTION=true
+      - DD_TRACE_ENABLED=true
+      - DD_SERVICE=product-api
+      - DD_ENV=development
+      - DD_VERSION=1.0.0
+    depends_on:
+      - sql-server
+      - datadog-agent
+    # Labels do Datadog para coletar logs da API
+    labels:
+      com.datadoghq.ad.logs: '[{"source": "dotnet", "service": "product-api"}]'
+
+  # Serviço 3: O AGENTE DATADOG (com suas chaves do Trial)
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:latest
+    container_name: datadog-agent
+    environment:
+      # --- Suas chaves do Trial ---
+      - DD_API_KEY=9862d0711bd4e4071516baaf5ef1f97d
+      - DD_SITE=us5.datadoghq.com
+      
+      # Configurações do Agente
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_DOCKER_LABELS_AS_TAGS=true
+      - DD_APM_ENABLED=true
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+    ports:
+      - "8126:8126/tcp" # Porta para APM / Tracing
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    depends_on:
+      - sql-server
+
+# Volume persistente para os dados do SQL
+volumes:
+  sql-data:
