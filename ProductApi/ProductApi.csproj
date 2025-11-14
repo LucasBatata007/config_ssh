@@ -11,12 +11,11 @@
 
   <ItemGroup>
     <!-- Pacotes da API -->
-    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="Dapper" Version="2.1.35" />  
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
 
     <!-- ESTE É O PACOTE CRUCIAL PARA O APM FUNCIONAR -->
-    <PackageReference Include="Datadog.Trace.Bundle" Version="2.50.0" />
   </ItemGroup>
 
 </Project>
