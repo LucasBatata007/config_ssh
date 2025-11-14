@@ -14,7 +14,7 @@ services:
       - "1433:1433"
     volumes:
       - sql-data:/var/opt/mssql
-    # Labels do Datadog (Corrigido, sem o comentário interno)
+    # Labels do Datadog
     labels:
       com.datadoghq.ad.check_names: '["sqlserver"]'
       com.datadoghq.ad.init_configs: '[{}]'
@@ -23,7 +23,6 @@ services:
           {
             "host": "sql-server,1433",
             "username": "sa",
-            # A SENHA VAI AQUI, DENTRO DAS ASPAS
             "password": "SuaSenha@Forte123"
           }
         ]
@@ -39,10 +38,16 @@ services:
       # --- CONFIRA A SENHA (3/3) ---
       - ConnectionStrings__DefaultConnection=Server=sql-server;Database=master;User Id=sa;Password=SuaSenha@Forte123;TrustServerCertificate=True
       
-      # Envs do Datadog APM (Tracer)
+      # --- Envs do Datadog APM (Tracer) ---
+
+      ### NOVO: Variáveis para ATIVAR o profiler do .NET ###
+      - CORECLR_ENABLE_PROFILING=1
+      - CORECLR_PROFILER={846F5F1C-F9AE-4B07-969E-05C26BC060D8}
+      
+      # Configurações do Tracer
       - DD_AGENT_HOST=datadog-agent
       - DD_LOGS_INJECTION=true
-      - DD_TRACE_ENABLED=true
+      - DD_TRACE_ENABLED=true # Você já tinha, está correto
       - DD_SERVICE=product-api
       - DD_ENV=development
       - DD_VERSION=1.0.0
@@ -67,6 +72,10 @@ services:
       - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
       - DD_DOCKER_LABELS_AS_TAGS=true
       - DD_APM_ENABLED=true
+      
+      ### NOVO: Permite que o agente receba traces de outros containers ###
+      - DD_APM_NON_LOCAL_TRAFFIC=true 
+
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
     ports:
       - "8126:8126/tcp" # Porta para APM / Tracing
